@@ -264,7 +264,7 @@ class CloudShell:
                 self._log(": enter shell too long,refresh page")
                 self.driver.refresh()
 
-    def _change_region(self, region, index) -> bool:
+    def _change_region(self, index,region) -> bool:
         max_try = 0
         while max_try < 3:
             try:
