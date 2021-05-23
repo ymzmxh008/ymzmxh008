@@ -340,28 +340,29 @@ class CloudShell:
                 self.driver.refresh()
 
     def start(self):
-        try:
-            self._do_login()
-            while True:
-                for index, region in enumerate(['Dallas', 'Frankfurt', 'Tokyo']):
-                    if self._change_region(index, region):
-                        if not self._send_command():
-                            return self.user
-                    elif self.driver.current_url != address:
-                        raise Exception("shell may loss state")
-                    else:
-                        self.driver.refresh()
-        except Exception as e:
-            self._log(f"run selenium error={e},rerunning")
-            self.driver.quit()
-            self.tor_process.terminate()
-            self._configure_web_driver()
-            self._setUp_tor()
-            self.start()
+        self._do_login()
+        while True:
+            for index, region in enumerate(['Dallas', 'Frankfurt', 'Tokyo']):
+                if self._change_region(index, region):
+                    if not self._send_command():
+                        return self.user
+                elif self.driver.current_url != address:
+                    raise Exception("shell may loss state")
+                else:
+                    self.driver.refresh()
 
 
 def run_selenium(account):
-    return CloudShell(account['user'], account['passwd'], account['id']).start()
+    cloud_shell = None
+    try:
+        cloud_shell = CloudShell(account['user'], account['passwd'], account['id'])
+        cloud_shell.start()
+    except Exception as e:
+        print(f"{account['user']} run selenium failed,{e}")
+        if cloud_shell is not None:
+            cloud_shell.driver.quit()
+            cloud_shell.tor_process.terminate()
+        run_selenium(account)
 
 
 if __name__ == '__main__':
