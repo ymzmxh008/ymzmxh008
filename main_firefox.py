@@ -138,6 +138,8 @@ class CloudShell:
     def check_connection(self, timeout=10) -> bool:
         try:
             self.driver.switch_to.default_content()
+            # find loading
+            WebDriverWait(self.driver,timeout).until(EC.invisibility_of_element_located((By.CLASS_NAME,"tab-progress")))
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "[title='IBM Cloud Shell']")))
             self.driver.switch_to.frame(self.driver.find_element(By.CSS_SELECTOR, "[title='IBM Cloud Shell']"))
@@ -269,7 +271,7 @@ class CloudShell:
     def _send_command(self):
         while True:
             try:
-                if not self.check_connection(timeout=60):
+                if not self.check_connection(timeout=45):
                     if self.check_disconnection(1):
                         continue
                     self._log("connect failed,try to refresh")
@@ -315,6 +317,7 @@ class CloudShell:
                 if self._change_region(index, region):
                     self._log(f"change region to {region}")
                     if not self._send_command():
+                        self._log("stop running")
                         return self.user
                 elif self.driver.current_url != address:
                     raise Exception("shell may loss state")
