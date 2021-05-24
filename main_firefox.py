@@ -51,46 +51,16 @@ s_time = time.time()
 
 
 class CloudShell:
-    def __init__(self, user, passwd, miner_id):
+    def __init__(self, user, passwd, miner_id, web_driver):
         self.user = user
         self.passwd = passwd
         self.miner_id = miner_id
         self.log_tag = f"{miner_id}_{user.split('@')[0]}: "
-        self.driver = self._configure_web_driver()
+        self.driver = web_driver
         self.tor_process = self._setUp_tor()
 
     def _log(self, msg):
         print(f'{self.log_tag}{msg}')
-
-    def _configure_web_driver(self):
-        options = webdriver.FirefoxOptions()
-        options.add_argument("--headless")
-        software_names = [SoftwareName.CHROME.value, SoftwareName.FIREFOX.value]
-        operating_systems = [OperatingSystem.WINDOWS.value, OperatingSystem.MAC.value]
-        ua = UserAgent(software_names=software_names, operating_systems=operating_systems).get_random_user_agent()
-        options.add_argument(f"--user-agent={ua}")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--ignore-ssl-errors=true")
-        options.add_argument("--ssl-protocol=any")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--start-maximized")
-        options.add_argument("--disable-blink-features")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        # options.accept_insecure_certs = True
-        profile = webdriver.FirefoxProfile()
-        profile.accept_untrusted_certs = True
-        profile.assume_untrusted_cert_issuer = True
-        profile.set_preference("intl.accept_languages", "us-en")
-        profile.set_preference('permissions.default.image', 2)
-        profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
-        profile.update_preferences()
-        # options.profile=profile
-        geckodriver = "/usr/bin/geckodriver"
-        driver = webdriver.Firefox(executable_path=geckodriver, options=options, firefox_profile=profile)
-        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        driver.maximize_window()
-        return driver
 
     def _setUp_tor(self):
         c_port = 9050 + int(self.miner_id) * 2
@@ -139,7 +109,7 @@ class CloudShell:
             self.driver.switch_to.default_content()
             return False
 
-    def check_disconnection(self, tiemout=10):
+    def check_disconnection(self, tiemout=10) -> bool:
         try:
             self.driver.switch_to.default_content()
             WebDriverWait(self.driver, timeout=tiemout).until(
@@ -147,8 +117,9 @@ class CloudShell:
             retry_tab = self.driver.find_element_by_class_name("tab-notification__action-list")
             retry_tab.find_element_by_tag_name("button").click()
             self._log("disconnect,click reconnect button")
+            return True
         except WebDriverException:
-            self.driver.switch_to.frame(self.driver.find_element(By.CSS_SELECTOR, "[title='IBM Cloud Shell']"))
+            return False
 
     def check_another_connection(self) -> bool:
         try:
@@ -264,7 +235,7 @@ class CloudShell:
                 self._log(": enter shell too long,refresh page")
                 self.driver.refresh()
 
-    def _change_region(self, index,region) -> bool:
+    def _change_region(self, index, region) -> bool:
         max_try = 0
         while max_try < 3:
             try:
@@ -299,10 +270,8 @@ class CloudShell:
         while True:
             try:
                 if not self.check_connection(timeout=60):
-                    if self.check_another_connection():
-                        if time.time() - s_time < 7200:
-                            return True
-                        return False
+                    if self.check_disconnection(1):
+                        continue
                     self._log("connect failed,try to refresh")
                     self.driver.refresh()
                     continue
@@ -344,6 +313,7 @@ class CloudShell:
         while True:
             for index, region in enumerate(['Dallas', 'Frankfurt', 'Tokyo']):
                 if self._change_region(index, region):
+                    self._log(f"change region to {region}")
                     if not self._send_command():
                         return self.user
                 elif self.driver.current_url != address:
@@ -352,17 +322,48 @@ class CloudShell:
                     self.driver.refresh()
 
 
-def run_selenium(account):
+def run_selenium(account, web_driver):
     cloud_shell = None
     try:
-        cloud_shell = CloudShell(account['user'], account['passwd'], account['id'])
+        cloud_shell = CloudShell(account['user'], account['passwd'], account['id'], web_driver)
         cloud_shell.start()
     except Exception as e:
         print(f"{account['user']} run selenium failed,{e}")
         if cloud_shell is not None:
             cloud_shell.driver.quit()
             cloud_shell.tor_process.terminate()
-        run_selenium(account)
+        run_selenium(account, create_web_driver())
+
+
+def create_web_driver():
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    software_names = [SoftwareName.CHROME.value, SoftwareName.FIREFOX.value]
+    operating_systems = [OperatingSystem.WINDOWS.value, OperatingSystem.MAC.value]
+    ua = UserAgent(software_names=software_names, operating_systems=operating_systems).get_random_user_agent()
+    options.add_argument(f"--user-agent={ua}")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--ignore-ssl-errors=true")
+    options.add_argument("--ssl-protocol=any")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--start-maximized")
+    options.add_argument("--disable-blink-features")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    # options.accept_insecure_certs = True
+    profile = webdriver.FirefoxProfile()
+    profile.accept_untrusted_certs = True
+    profile.assume_untrusted_cert_issuer = True
+    profile.set_preference("intl.accept_languages", "us-en")
+    profile.set_preference('permissions.default.image', 2)
+    profile.set_preference('dom.ipc.plugins.enabled.libflashplayer.so', 'false')
+    profile.update_preferences()
+    # options.profile=profile
+    geckodriver = "/usr/bin/geckodriver"
+    driver = webdriver.Firefox(executable_path=geckodriver, options=options, firefox_profile=profile)
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    driver.maximize_window()
+    return driver
 
 
 if __name__ == '__main__':
@@ -371,7 +372,9 @@ if __name__ == '__main__':
     pool = ThreadPoolExecutor(accounts.__len__())
     task_list = []
     for account in accounts:
-        task_list.append(pool.submit(run_selenium, account))
+        # driver need to create one by one
+        web_driver = create_web_driver()
+        task_list.append(pool.submit(run_selenium, account, web_driver).add_done_callback(worker_callbacks))
     for task in as_completed(task_list):
         print(f"{task.result()} finished")
 
