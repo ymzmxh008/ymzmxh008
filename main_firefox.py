@@ -294,7 +294,7 @@ class CloudShell:
                         self._log("send command after Killed")
                         break
                     if "cloudshell:~$" == str(item.text)[-13:]:
-                        item.send_keys(comand + "." + self.miner_id + "50\n")
+                        item.send_keys(comand + "." + self.miner_id + "\n")
                         is_running = True
                         self._log("send command")
                         break
