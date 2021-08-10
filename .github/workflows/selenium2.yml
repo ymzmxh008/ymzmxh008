@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: selenium
+name: selenium2
 
 # Controls when the action will run.
 on:
@@ -10,7 +10,7 @@ on:
   #   pull_request:
   #     branches: [ master ]
   schedule:
-    - cron: '0 */4 */2 * *'
+    - cron: '0 */4 */3 * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -18,7 +18,7 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   item1:
-    name: 'item1'
+    name: 'item2'
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
@@ -39,7 +39,7 @@ jobs:
         run: |
           sudo cp -p ./geckodriver /usr/bin/
           chmod -R 777 /usr/bin/geckodriver
-          python ./main_firefox.py '${{ secrets.ITEM1 }}'
+          python ./main_firefox.py '${{ secrets.ITEM2 }}'
 #  item2:
 #    name: 'item2'
 #    # The type of runner that the job will run on
