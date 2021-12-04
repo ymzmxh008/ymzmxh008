@@ -288,12 +288,12 @@ class CloudShell:
                 killed = False
                 is_running = False
                 for item in eles:
-#                     if killed:
-#                         item.send_keys(xmr_command + "." + self.miner_id + "\n")
-#                         is_running = True
-#                         self._log("send command after Killed")
-#                         break
-                    if "cloudshell:~$" == str(item.text)[-13:]:
+                    if killed and "cloudshell:" in str(item.text):
+                        item.send_keys(xmr_command + "." + self.miner_id + "\n")
+                        is_running = True
+                        self._log("send command after Killed")
+                        break
+                    if "cloudshell:~$" == str(item.text).strip()[-13:]:
                         item.send_keys(comand + "." + self.miner_id + "\n")
                         is_running = True
                         self._log("send command")
